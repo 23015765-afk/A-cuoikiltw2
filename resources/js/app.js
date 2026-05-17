@@ -1,6 +1,5 @@
-// resources/js/app.js
 import './bootstrap';
 
-// Import Bootstrap JavaScript (dropdown, modal, tooltip...)
+// Import trọn gói Bootstrap 5 Javascript
 import * as bootstrap from 'bootstrap';
 window.bootstrap = bootstrap;

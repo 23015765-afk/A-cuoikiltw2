@@ -4,6 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
 
 class Post extends Model
@@ -33,52 +37,32 @@ class Post extends Model
     }
 
     // ===== RELATIONSHIPS =====
-
-    /**
-     * Post thuộc về 1 User (tác giả)
-     * Quan hệ N-1: nhiều Post thuộc 1 User
-     */
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Post thuộc về 1 Category
-     */
-    public function category()
+    public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
     }
 
-    /**
-     * 1 Post có nhiều Comment
-     */
-    public function comments()
+    public function comments(): HasMany
     {
-        return $this->hasMany(Comment::class)->latest();
+        return $this->hasMany(Comment::class)->orderBy('created_at', 'desc');
     }
 
-    /**
-     * Comment đã được duyệt
-     */
-    public function approvedComments()
+    public function approvedComments(): HasMany
     {
-        return $this->hasMany(Comment::class)->where('is_approved', true)->latest();
+        return $this->hasMany(Comment::class)->where('is_approved', true)->orderBy('created_at', 'desc');
     }
 
-    /**
-     * Những User yêu thích bài này (N-N qua bảng favorites)
-     */
-    public function favoritedByUsers()
+    public function favoritedByUsers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'favorites')->withTimestamps();
     }
 
-    /**
-     * Những User đánh giá bài này (N-N qua bảng ratings)
-     */
-    public function ratedByUsers()
+    public function ratedByUsers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'ratings')
                     ->withPivot('rating')
@@ -86,67 +70,47 @@ class Post extends Model
     }
 
     // ===== SCOPES =====
-
-    /**
-     * Chỉ lấy bài đã published
-     * Dùng: Post::published()->get()
-     */
     public function scopePublished($query)
     {
         return $query->where('status', 'published');
     }
 
-    /**
-     * Sắp xếp theo mới nhất
-     */
-    public function scopeLatest($query)
+    // ===== ACCESSORS (Kiến trúc chuẩn Laravel 11) =====
+    protected function thumbnailUrl(): Attribute
     {
-        return $query->orderBy('created_at', 'desc');
+        return Attribute::make(
+            get: fn () => $this->thumbnail
+                ? asset('storage/' . $this->thumbnail)
+                : asset('images/default-post.jpg')
+        );
     }
 
-    // ===== ACCESSOR (thuộc tính tính toán) =====
-
-    /**
-     * URL ảnh thumbnail
-     */
-    public function getThumbnailUrlAttribute(): string
+    protected function averageRating(): Attribute
     {
-        if ($this->thumbnail) {
-            return asset('storage/' . $this->thumbnail);
-        }
-        return asset('images/default-post.jpg');
+        return Attribute::make(
+            get: fn () => (float) ($this->ratedByUsers()->avg('rating') ?? 0)
+        );
     }
 
-    /**
-     * Điểm đánh giá trung bình
-     */
-    public function getAverageRatingAttribute(): float
+    protected function ratingCount(): Attribute
     {
-        return $this->ratedByUsers()->avg('rating') ?? 0;
+        return Attribute::make(
+            get: fn () => (int) $this->ratedByUsers()->count()
+        );
     }
 
-    /**
-     * Số lượt đánh giá
-     */
-    public function getRatingCountAttribute(): int
+    // ===== MODEL EVENTS =====
+    protected static function boot(): void
     {
-        return $this->ratedByUsers()->count();
-    }
+        parent::boot();
 
-    // ===== EVENTS =====
-
-    protected static function booted(): void
-    {
         static::creating(function (Post $post) {
-            // Tự động tạo slug từ title
             if (empty($post->slug)) {
-                $post->slug = Str::slug($post->title) . '-' . Str::random(6);
+                $post->slug = Str::slug($post->title) . '-' . Str::lower(Str::random(6));
             }
-            // Tự động tạo excerpt từ content nếu chưa có
             if (empty($post->excerpt)) {
                 $post->excerpt = Str::limit(strip_tags($post->content), 200);
             }
-            // Nếu status là published mà chưa có published_at
             if ($post->status === 'published' && empty($post->published_at)) {
                 $post->published_at = now();
             }

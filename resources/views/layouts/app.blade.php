@@ -1,36 +1,51 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="csrf-token" content="{{ csrf_token() }}">
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>@yield('title', config('app.name'))</title>
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+    <!-- App CSS (Bootstrap + Custom) -->
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-        <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
-    </head>
-    <body class="font-sans antialiased">
-        <div class="min-h-screen bg-gray-100">
-            @include('layouts.navigation')
+    @stack('styles')
+</head>
+<body>
 
-            <!-- Page Heading -->
-            @isset($header)
-                <header class="bg-white shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                        {{ $header }}
-                    </div>
-                </header>
-            @endisset
+    {{-- Thanh điều hướng --}}
+    @include('layouts.navigation')
 
-            <!-- Page Content -->
-            <main>
-                {{ $slot }}
-            </main>
+    {{-- Flash message thông báo --}}
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show m-0 rounded-0" role="alert">
+            <div class="container">
+                <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
         </div>
-    </body>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show m-0 rounded-0" role="alert">
+            <div class="container">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        </div>
+    @endif
+
+    {{-- Nội dung chính --}}
+    <main>
+        @yield('content')
+    </main>
+
+    {{-- Footer --}}
+    @include('layouts.footer')
+
+    @stack('scripts')
+</body>
 </html>
