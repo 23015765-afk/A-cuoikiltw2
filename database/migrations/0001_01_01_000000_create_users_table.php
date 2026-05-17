@@ -7,7 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Tạo bảng users — lưu thông tin người dùng
+     *
+     * Giải thích các cột:
+     * - id: khóa chính, tự tăng
+     * - name: tên hiển thị
+     * - email: email (unique — không được trùng)
+     * - email_verified_at: thời điểm xác minh email
+     * - password: mật khẩu đã hash
+     * - role: phân quyền ('user' hoặc 'admin')
+     * - avatar: đường dẫn ảnh đại diện
+     * - is_active: trạng thái tài khoản (1=hoạt động, 0=bị khóa)
+     * - remember_token: token nhớ đăng nhập
+     * - timestamps: created_at và updated_at (Laravel tự quản lý)
      */
     public function up(): void
     {
@@ -17,6 +29,9 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->enum('role', ['user', 'admin'])->default('user');
+            $table->string('avatar')->nullable();
+            $table->boolean('is_active')->default(true);
             $table->rememberToken();
             $table->timestamps();
         });
@@ -37,9 +52,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('users');
